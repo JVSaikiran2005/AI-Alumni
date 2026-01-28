@@ -1,46 +1,45 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, Briefcase, DollarSign, Target, Zap } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+
+const mockInsights = {
+  market_summary: {
+    total_active_jobs: 1243,
+    most_in_demand: 'React',
+    avg_growth_rate: '12%'
+  },
+  trending_skills: [
+    { skill: 'React', demand: 480, growth_rate: 25 },
+    { skill: 'TypeScript', demand: 420, growth_rate: 22 },
+    { skill: 'Python', demand: 380, growth_rate: 18 },
+    { skill: 'Node.js', demand: 350, growth_rate: 15 },
+    { skill: 'AWS', demand: 320, growth_rate: 20 }
+  ],
+  top_companies: [
+    { company: 'Tech Giants Inc', alumni_count: 45 },
+    { company: 'Innovation Labs', alumni_count: 38 },
+    { company: 'StartupHub Corp', alumni_count: 32 },
+    { company: 'Digital Solutions', alumni_count: 28 },
+    { company: 'Cloud Systems', alumni_count: 25 }
+  ],
+  personalized_insights: [
+    { skill: 'Full Stack Development', demand_level: 'High', recommendation: 'High demand skill, continue building projects' },
+    { skill: 'System Design', demand_level: 'High', recommendation: 'Critical for senior roles, focus on learning' }
+  ],
+  career_paths: [
+    { path: 'Senior Engineer', avg_salary: 180000, demand: 'Very High', time_to_proficiency: '3-4 years', skills_needed: ['React', 'Node.js', 'System Design'] },
+    { path: 'Tech Lead', avg_salary: 160000, demand: 'High', time_to_proficiency: '4-5 years', skills_needed: ['Leadership', 'Architecture', 'Mentoring'] },
+    { path: 'Product Manager', avg_salary: 150000, demand: 'High', time_to_proficiency: '2-3 years', skills_needed: ['Analytics', 'Communication', 'Strategy'] }
+  ]
+};
 
 export function CareerInsights() {
-  const [insights, setInsights] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [insights] = useState(mockInsights);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    loadInsights();
+    setLoading(false);
   }, []);
-
-  const loadInsights = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/career-insights`,
-        {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-      setInsights(data);
-    } catch (error) {
-      console.error('Error loading insights:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
 
   if (!insights) {
     return (

@@ -1,82 +1,35 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { DashboardLayout } from '../components/Layout/DashboardLayout';
 import { motion } from 'framer-motion';
 import { Users, MessageSquare, Briefcase, CheckCircle, Clock, Plus } from 'lucide-react';
-import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { JobPostingForm } from '../components/Jobs/JobPostingForm';
 import { ProfileSettings } from '../components/Profile/ProfileSettings';
 
+const mockSessions = [
+  { id: '1', title: 'Career Planning', student: { full_name: 'John Smith' }, status: 'requested', description: 'I need help with my career path' },
+  { id: '2', title: 'Interview Prep', student: { full_name: 'Jane Doe' }, status: 'accepted', description: 'Help with technical interviews' }
+];
+
+const mockReferralRequests = [
+  { id: '1', student: { full_name: 'John Smith' }, job_posting: { title: 'Frontend Developer', company: 'TechCorp' }, message: 'Can you refer me?' }
+];
+
 export function AlumniDashboard() {
   const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [stats, setStats] = useState({
-    totalMentees: 0,
-    activeSessions: 0,
-    referralRequests: 0,
-    jobsPosted: 0,
+  const [stats] = useState({
+    totalMentees: 5,
+    activeSessions: 2,
+    referralRequests: 1,
+    jobsPosted: 3,
   });
-  const [sessions, setSessions] = useState<any[]>([]);
-  const [referralRequests, setReferralRequests] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (profile?.id) {
-      loadDashboardData();
-    }
-  }, [profile]);
-
-  const loadDashboardData = async () => {
-    try {
-      const [sessionsRes, referralsRes, jobsRes] = await Promise.all([
-        supabase
-          .from('mentorship_sessions')
-          .select('*, student:student_id(full_name)')
-          .eq('alumni_id', profile?.id)
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('referral_requests')
-          .select('*, student:student_id(full_name), job_posting:job_posting_id(title, company)')
-          .eq('alumni_id', profile?.id)
-          .eq('status', 'pending'),
-        supabase
-          .from('job_postings')
-          .select('*')
-          .eq('posted_by', profile?.id)
-          .eq('is_active', true),
-      ]);
-
-      const activeSessions = sessionsRes.data?.filter((s) => s.status === 'accepted').length || 0;
-      const uniqueStudents = new Set(sessionsRes.data?.map((s) => s.student_id)).size;
-
-      setStats({
-        totalMentees: uniqueStudents,
-        activeSessions,
-        referralRequests: referralsRes.data?.length || 0,
-        jobsPosted: jobsRes.data?.length || 0,
-      });
-
-      if (sessionsRes.data) setSessions(sessionsRes.data);
-      if (referralsRes.data) setReferralRequests(referralsRes.data);
-    } catch (error) {
-      console.error('Error loading dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [sessions] = useState(mockSessions);
+  const [referralRequests] = useState(mockReferralRequests);
+  const [loading] = useState(false);
 
   const handleSessionAction = async (sessionId: string, action: 'accept' | 'reject') => {
-    try {
-      const status = action === 'accept' ? 'accepted' : 'cancelled';
-      await supabase
-        .from('mentorship_sessions')
-        .update({ status })
-        .eq('id', sessionId);
-
-      loadDashboardData();
-    } catch (error) {
-      console.error('Error updating session:', error);
-    }
+    alert(`Session ${action}ed: ${sessionId}`);
   };
 
   const renderDashboard = () => (
@@ -236,7 +189,7 @@ export function AlumniDashboard() {
 
   const renderPostJob = () => (
     <div className="max-w-3xl mx-auto">
-      <JobPostingForm onSuccess={loadDashboardData} />
+      <JobPostingForm onSuccess={() => {}} />
     </div>
   );
 

@@ -1,13 +1,12 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, AuthError } from '@supabase/supabase-js';
-import { supabase, Profile, UserRole } from '../lib/supabase';
+import { createContext, useContext, useState, ReactNode } from 'react';
+import { Profile, UserRole } from '../lib/supabase';
 
 interface AuthContextType {
-  user: User | null;
+  user: { id: string; email: string } | null;
   profile: Profile | null;
   loading: boolean;
-  signUp: (email: string, password: string, fullName: string, role: UserRole) => Promise<{ error: AuthError | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
+  signUp: (email: string, password: string, fullName: string, role: UserRole) => Promise<{ error: string | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<void>;
 }
@@ -15,115 +14,63 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<{ id: string; email: string } | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        loadProfile(session.user.id);
-      } else {
-        setLoading(false);
-      }
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      (async () => {
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await loadProfile(session.user.id);
-        } else {
-          setProfile(null);
-          setLoading(false);
-        }
-      })();
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const loadProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (error) throw error;
-      setProfile(data);
-    } catch (error) {
-      console.error('Error loading profile:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [loading, setLoading] = useState(false);
 
   const signUp = async (email: string, password: string, fullName: string, role: UserRole) => {
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const userId = `user_${Date.now()}`;
+      const newProfile: Profile = {
+        id: userId,
         email,
-        password,
-      });
+        full_name: fullName,
+        user_role: role,
+        is_verified: false,
+        verification_badge: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
 
-      if (error) return { error };
-
-      if (data.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: data.user.id,
-            email,
-            full_name: fullName,
-            user_role: role,
-            is_verified: false,
-            verification_badge: false,
-          });
-
-        if (profileError) throw profileError;
-
-        const { error: detailsError } = await supabase
-          .from('user_details')
-          .insert({
-            user_id: data.user.id,
-            available_for_mentorship: role === 'alumni',
-            can_provide_referrals: role === 'alumni',
-          });
-
-        if (detailsError) throw detailsError;
-      }
-
+      setUser({ id: userId, email });
+      setProfile(newProfile);
       return { error: null };
     } catch (error) {
-      return { error: error as AuthError };
+      return { error: String(error) };
     }
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error };
+    try {
+      const userId = `user_${Date.now()}`;
+      const mockProfile: Profile = {
+        id: userId,
+        email,
+        full_name: 'Demo User',
+        user_role: 'alumni',
+        is_verified: true,
+        verification_badge: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      setUser({ id: userId, email });
+      setProfile(mockProfile);
+      return { error: null };
+    } catch (error) {
+      return { error: String(error) };
+    }
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    setUser(null);
     setProfile(null);
   };
 
   const updateProfile = async (updates: Partial<Profile>) => {
-    if (!user) return;
-
-    const { error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', user.id);
-
-    if (error) throw error;
-    await loadProfile(user.id);
+    if (!profile) return;
+    const updated = { ...profile, ...updates, updated_at: new Date().toISOString() };
+    setProfile(updated);
   };
 
   return (

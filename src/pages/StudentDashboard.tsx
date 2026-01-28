@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { DashboardLayout } from '../components/Layout/DashboardLayout';
 import { motion } from 'framer-motion';
 import {
@@ -12,90 +12,53 @@ import {
   Search,
   MessageSquare,
 } from 'lucide-react';
-import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { MentorshipRequest } from '../components/Mentorship/MentorshipRequest';
 import { ProfileSettings } from '../components/Profile/ProfileSettings';
 import { CareerInsights } from '../components/Career/CareerInsights';
 
+const mockMatches = [
+  {
+    id: '1',
+    alumni: { full_name: 'Sarah Johnson', user_details: { job_title: 'Senior Engineer', current_company: 'Tech Corp' } },
+    match_score: 0.95,
+    matched_skills: ['React', 'TypeScript', 'Node.js']
+  },
+  {
+    id: '2',
+    alumni: { full_name: 'Michael Chen', user_details: { job_title: 'Product Manager', current_company: 'Innovation Inc' } },
+    match_score: 0.87,
+    matched_skills: ['Product Strategy', 'Leadership']
+  }
+];
+
+const mockJobs = [
+  { id: '1', title: 'Frontend Developer', company: 'TechStart', job_type: 'Full-time', location: 'Remote' },
+  { id: '2', title: 'Junior Full Stack', company: 'WebDev Co', job_type: 'Full-time', location: 'New York' },
+  { id: '3', title: 'Design Engineer', company: 'Creative Labs', job_type: 'Contract', location: 'San Francisco' },
+];
+
+const mockSessions = [
+  { id: '1', title: 'Career Planning Session', alumni: { full_name: 'Sarah Johnson' }, status: 'accepted', scheduled_at: '2026-02-15', duration_minutes: 60 },
+  { id: '2', title: 'Technical Interview Prep', alumni: { full_name: 'Michael Chen' }, status: 'pending', scheduled_at: null, duration_minutes: 45 }
+];
+
 export function StudentDashboard() {
   const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [matches, setMatches] = useState<any[]>([]);
-  const [sessions, setSessions] = useState<any[]>([]);
-  const [jobs, setJobs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [matches] = useState(mockMatches);
+  const [sessions] = useState(mockSessions);
+  const [jobs] = useState(mockJobs);
+  const [loading] = useState(false);
   const [selectedAlumni, setSelectedAlumni] = useState<{ id: string; name: string } | null>(null);
   const [generatingMatches, setGeneratingMatches] = useState(false);
 
-  useEffect(() => {
-    if (profile?.id) {
-      loadDashboardData();
-    }
-  }, [profile]);
-
-  const loadDashboardData = async () => {
-    try {
-      const [matchesRes, sessionsRes, jobsRes] = await Promise.all([
-        supabase
-          .from('ai_matches')
-          .select('*, alumni:alumni_id(full_name, user_details(job_title, current_company))')
-          .eq('student_id', profile?.id)
-          .eq('is_active', true)
-          .order('match_score', { ascending: false })
-          .limit(5),
-        supabase
-          .from('mentorship_sessions')
-          .select('*, alumni:alumni_id(full_name)')
-          .eq('student_id', profile?.id)
-          .order('created_at', { ascending: false })
-          .limit(5),
-        supabase
-          .from('job_postings')
-          .select('*')
-          .eq('is_active', true)
-          .order('created_at', { ascending: false })
-          .limit(6),
-      ]);
-
-      if (matchesRes.data) setMatches(matchesRes.data);
-      if (sessionsRes.data) setSessions(sessionsRes.data);
-      if (jobsRes.data) setJobs(jobsRes.data);
-    } catch (error) {
-      console.error('Error loading dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const generateAIMatches = async () => {
     setGeneratingMatches(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-matching`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      const data = await response.json();
-      if (data.success) {
-        await loadDashboardData();
-        alert(`Generated ${data.matches_generated} AI-powered matches!`);
-      }
-    } catch (error) {
-      console.error('Error generating matches:', error);
-      alert('Error generating matches');
-    } finally {
+    setTimeout(() => {
+      alert('Generated 2 AI-powered matches!');
       setGeneratingMatches(false);
-    }
+    }, 2000);
   };
 
   const renderDashboard = () => (
@@ -339,7 +302,7 @@ export function StudentDashboard() {
             )}
 
             <button
-              onClick={() => setSelectedAlumni({ id: match.alumni_id, name: match.alumni?.full_name })}
+              onClick={() => setSelectedAlumni({ id: '1', name: match.alumni?.full_name })}
               className="w-full mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition"
             >
               Request Mentorship
@@ -413,7 +376,7 @@ export function StudentDashboard() {
           alumniId={selectedAlumni.id}
           alumniName={selectedAlumni.name}
           onClose={() => setSelectedAlumni(null)}
-          onSuccess={() => loadDashboardData()}
+          onSuccess={() => {}}
         />
       )}
     </>

@@ -2,90 +2,33 @@ import { useState, useEffect } from 'react';
 import { DashboardLayout } from '../components/Layout/DashboardLayout';
 import { motion } from 'framer-motion';
 import { Users, Shield, TrendingUp, Activity, CheckCircle, XCircle } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+
+const mockVerificationRequests = [
+  {
+    id: '1',
+    user: { full_name: 'John Doe', email: 'john@example.com' },
+    proof_type: 'email',
+    institute_email: 'john@university.edu',
+    document_url: '#',
+    created_at: '2026-01-25'
+  }
+];
 
 export function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    totalStudents: 0,
-    totalAlumni: 0,
-    pendingVerifications: 0,
-    activeSessions: 0,
-    totalMatches: 0,
+  const [stats] = useState({
+    totalUsers: 156,
+    totalStudents: 89,
+    totalAlumni: 67,
+    pendingVerifications: 1,
+    activeSessions: 12,
+    totalMatches: 34,
   });
-  const [verificationRequests, setVerificationRequests] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
-
-  const loadDashboardData = async () => {
-    try {
-      const [profilesRes, verificationsRes, sessionsRes, matchesRes] = await Promise.all([
-        supabase.from('profiles').select('user_role'),
-        supabase
-          .from('verification_requests')
-          .select('*, user:user_id(full_name, email)')
-          .eq('status', 'pending')
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('mentorship_sessions')
-          .select('*')
-          .eq('status', 'accepted'),
-        supabase
-          .from('ai_matches')
-          .select('*')
-          .eq('is_active', true),
-      ]);
-
-      const students = profilesRes.data?.filter((p) => p.user_role === 'student').length || 0;
-      const alumni = profilesRes.data?.filter((p) => p.user_role === 'alumni').length || 0;
-
-      setStats({
-        totalUsers: profilesRes.data?.length || 0,
-        totalStudents: students,
-        totalAlumni: alumni,
-        pendingVerifications: verificationsRes.data?.length || 0,
-        activeSessions: sessionsRes.data?.length || 0,
-        totalMatches: matchesRes.data?.length || 0,
-      });
-
-      if (verificationsRes.data) setVerificationRequests(verificationsRes.data);
-    } catch (error) {
-      console.error('Error loading admin data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [verificationRequests] = useState(mockVerificationRequests);
+  const [loading] = useState(false);
 
   const handleVerification = async (requestId: string, action: 'approve' | 'reject') => {
-    try {
-      const status = action === 'approve' ? 'approved' : 'rejected';
-
-      const { data: request } = await supabase
-        .from('verification_requests')
-        .select('user_id')
-        .eq('id', requestId)
-        .single();
-
-      await supabase
-        .from('verification_requests')
-        .update({ status, reviewed_at: new Date().toISOString() })
-        .eq('id', requestId);
-
-      if (action === 'approve' && request) {
-        await supabase
-          .from('profiles')
-          .update({ is_verified: true, verification_badge: true })
-          .eq('id', request.user_id);
-      }
-
-      loadDashboardData();
-    } catch (error) {
-      console.error('Error handling verification:', error);
-    }
+    alert(`Verification ${action}ed: ${requestId}`);
   };
 
   const renderDashboard = () => (
@@ -143,11 +86,11 @@ export function AdminDashboard() {
 
         <motion.div
           whileHover={{ scale: 1.02 }}
-          className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white"
+          className="bg-gradient-to-br from-slate-500 to-slate-600 rounded-xl p-6 text-white"
         >
           <TrendingUp className="w-10 h-10 mb-4 opacity-80" />
           <div className="text-3xl font-bold mb-1">{stats.totalMatches}</div>
-          <div className="text-purple-100">AI Matches</div>
+          <div className="text-slate-100">AI Matches</div>
         </motion.div>
       </div>
 

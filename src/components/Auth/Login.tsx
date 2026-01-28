@@ -22,7 +22,7 @@ export function Login({ onToggle }: LoginProps) {
     const { error } = await signIn(email, password);
 
     if (error) {
-      setError(error.message);
+      setError(error);
     }
 
     setLoading(false);
