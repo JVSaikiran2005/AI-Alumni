@@ -1,3 +1,4 @@
+from __future__ import annotations
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from datetime import datetime
@@ -21,7 +22,7 @@ class UserLogin(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str
-    user: 'UserResponse'
+    user: UserResponse
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
