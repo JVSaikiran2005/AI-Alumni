@@ -10,8 +10,18 @@ class UserRole(str, Enum):
 
 class UserCreate(BaseModel):
     email: EmailStr
+    password: str
     full_name: str
     role: UserRole = UserRole.STUDENT
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str
+    user: 'UserResponse'
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
