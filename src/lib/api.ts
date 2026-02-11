@@ -40,6 +40,28 @@ async function apiCall<T>(
   }
 }
 
+export interface SyncUserPayload {
+  firebase_uid: string;
+  email: string;
+  full_name: string;
+  role: 'student' | 'alumni' | 'admin';
+}
+
+export interface ChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+
 export const api = {
   health: () => apiCall('/health'),
+  syncUser: (payload: SyncUserPayload) =>
+    apiCall('/users/sync', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  aiChat: (userId: string, messages: ChatMessage[]) =>
+    apiCall<{ reply: string }>('/ai/chat', {
+      method: 'POST',
+      body: JSON.stringify({ user_id: userId, messages }),
+    }),
 };

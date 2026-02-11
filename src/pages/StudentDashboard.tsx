@@ -16,6 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { MentorshipRequest } from '../components/Mentorship/MentorshipRequest';
 import { ProfileSettings } from '../components/Profile/ProfileSettings';
 import { CareerInsights } from '../components/Career/CareerInsights';
+import { AIChat } from '../components/AI/AIChat';
 
 const mockMatches = [
   {
@@ -212,37 +213,40 @@ export function StudentDashboard() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-6">Upcoming Mentorship Sessions</h2>
-        {sessions.filter((s) => s.status === 'accepted').length > 0 ? (
-          <div className="space-y-4">
-            {sessions
-              .filter((s) => s.status === 'accepted')
-              .slice(0, 3)
-              .map((session) => (
-                <div key={session.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-                  <Calendar className="w-10 h-10 text-blue-600" />
-                  <div className="flex-1">
-                    <div className="font-semibold text-gray-900">{session.title}</div>
-                    <div className="text-sm text-gray-600">with {session.alumni?.full_name}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-semibold text-gray-900">
-                      {session.scheduled_at
-                        ? new Date(session.scheduled_at).toLocaleDateString()
-                        : 'Pending'}
+      <div className="grid lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-6">Upcoming Mentorship Sessions</h2>
+          {sessions.filter((s) => s.status === 'accepted').length > 0 ? (
+            <div className="space-y-4">
+              {sessions
+                .filter((s) => s.status === 'accepted')
+                .slice(0, 3)
+                .map((session) => (
+                  <div key={session.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                    <Calendar className="w-10 h-10 text-blue-600" />
+                    <div className="flex-1">
+                      <div className="font-semibold text-gray-900">{session.title}</div>
+                      <div className="text-sm text-gray-600">with {session.alumni?.full_name}</div>
                     </div>
-                    <div className="text-xs text-gray-500">{session.duration_minutes} min</div>
+                    <div className="text-right">
+                      <div className="text-sm font-semibold text-gray-900">
+                        {session.scheduled_at
+                          ? new Date(session.scheduled_at).toLocaleDateString()
+                          : 'Pending'}
+                      </div>
+                      <div className="text-xs text-gray-500">{session.duration_minutes} min</div>
+                    </div>
                   </div>
-                </div>
-              ))}
-          </div>
-        ) : (
-          <div className="text-center py-8 text-gray-500">
-            <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p>No upcoming sessions scheduled</p>
-          </div>
-        )}
+                ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
+              <p>No upcoming sessions scheduled</p>
+            </div>
+          )}
+        </div>
+        <AIChat />
       </div>
     </div>
   );

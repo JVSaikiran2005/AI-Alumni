@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { LogIn, Mail, Lock } from 'lucide-react';
+import { LogIn, Mail, Lock, Chrome } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface LoginProps {
@@ -8,7 +8,7 @@ interface LoginProps {
 }
 
 export function Login({ onToggle }: LoginProps) {
-  const { signIn } = useAuth();
+  const { signIn, signInWithGoogle } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -25,6 +25,16 @@ export function Login({ onToggle }: LoginProps) {
       setError(error);
     }
 
+    setLoading(false);
+  };
+
+  const handleGoogleSignIn = async () => {
+    setError('');
+    setLoading(true);
+    const { error } = await signInWithGoogle();
+    if (error) {
+      setError(error);
+    }
     setLoading(false);
   };
 
@@ -80,15 +90,25 @@ export function Login({ onToggle }: LoginProps) {
             {error}
           </div>
         )}
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <LogIn className="w-5 h-5" />
-          {loading ? 'Signing in...' : 'Sign In'}
-        </button>
+        <div className="space-y-3">
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <LogIn className="w-5 h-5" />
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={loading}
+            className="w-full bg-white border border-gray-300 hover:bg-gray-50 text-gray-800 font-semibold py-3 rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Chrome className="w-5 h-5 text-blue-600" />
+            Continue with Google
+          </button>
+        </div>
       </form>
 
       <div className="mt-6 text-center">

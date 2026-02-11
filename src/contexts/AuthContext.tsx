@@ -1,69 +1,112 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
-import { Profile, UserRole } from '../lib/supabase';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { User as FirebaseUser, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut as firebaseSignOut, signInWithPopup, updateProfile as firebaseUpdateProfile } from 'firebase/auth';
+import { auth, googleProvider } from '../lib/firebase';
+import { api } from '../lib/api';
+
+export type UserRole = 'student' | 'alumni' | 'admin';
+
+export interface Profile {
+  id: string;
+  email: string;
+  full_name: string;
+  user_role: UserRole;
+  is_verified: boolean;
+  verification_badge: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 interface AuthContextType {
-  user: { id: string; email: string } | null;
+  user: FirebaseUser | null;
   profile: Profile | null;
   loading: boolean;
   signUp: (email: string, password: string, fullName: string, role: UserRole) => Promise<{ error: string | null }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  signInWithGoogle: () => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function buildProfile(user: FirebaseUser, role: UserRole = 'student'): Profile {
+  const now = new Date().toISOString();
+  return {
+    id: user.uid,
+    email: user.email || '',
+    full_name: user.displayName || 'User',
+    user_role: role,
+    is_verified: true,
+    verification_badge: true,
+    created_at: now,
+    updated_at: now,
+  };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<{ id: string; email: string } | null>(null);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        setUser(firebaseUser);
+        const baseProfile = buildProfile(firebaseUser);
+        setProfile((prev) => prev ?? baseProfile);
+        // Sync basic profile to backend database
+        if (firebaseUser.email) {
+          await api.syncUser({
+            firebase_uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            full_name: firebaseUser.displayName || baseProfile.full_name,
+            role: baseProfile.user_role,
+          });
+        }
+      } else {
+        setUser(null);
+        setProfile(null);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const signUp = async (email: string, password: string, fullName: string, role: UserRole) => {
     try {
-      const userId = `user_${Date.now()}`;
-      const newProfile: Profile = {
-        id: userId,
-        email,
-        full_name: fullName,
-        user_role: role,
-        is_verified: false,
-        verification_badge: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      setUser({ id: userId, email });
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      if (auth.currentUser) {
+        await firebaseUpdateProfile(auth.currentUser, { displayName: fullName });
+      }
+      const newProfile = buildProfile(cred.user, role);
       setProfile(newProfile);
       return { error: null };
     } catch (error) {
-      return { error: String(error) };
+      return { error: error instanceof Error ? error.message : String(error) };
     }
   };
 
   const signIn = async (email: string, password: string) => {
     try {
-      const userId = `user_${Date.now()}`;
-      const mockProfile: Profile = {
-        id: userId,
-        email,
-        full_name: 'Demo User',
-        user_role: 'alumni',
-        is_verified: true,
-        verification_badge: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      setUser({ id: userId, email });
-      setProfile(mockProfile);
+      await signInWithEmailAndPassword(auth, email, password);
       return { error: null };
     } catch (error) {
-      return { error: String(error) };
+      return { error: error instanceof Error ? error.message : String(error) };
+    }
+  };
+
+  const signInWithGoogle = async () => {
+    try {
+      await signInWithPopup(auth, googleProvider);
+      return { error: null };
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : String(error) };
     }
   };
 
   const signOut = async () => {
-    setUser(null);
+    await firebaseSignOut(auth);
     setProfile(null);
   };
 
@@ -74,7 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signUp, signIn, signOut, updateProfile }}>
+    <AuthContext.Provider value={{ user, profile, loading, signUp, signIn, signInWithGoogle, signOut, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

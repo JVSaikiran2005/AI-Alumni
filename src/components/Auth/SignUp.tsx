@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { UserPlus, Mail, Lock, User, GraduationCap, Briefcase } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import { UserRole } from '../../lib/supabase';
+import { useAuth, UserRole } from '../../contexts/AuthContext';
 
 interface SignUpProps {
   onToggle: () => void;
@@ -31,7 +30,7 @@ export function SignUp({ onToggle }: SignUpProps) {
     const { error } = await signUp(email, password, fullName, role);
 
     if (error) {
-      setError(error.message);
+      setError(error);
     }
 
     setLoading(false);
